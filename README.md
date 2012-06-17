@@ -1,6 +1,8 @@
 i3-emacs
 ========
 
+*Note: Emacs 24 required.*
+
 i3 emacs integration.
 
 If you, like me, use i3 as your window manager and Emacs as your editor, you might want to make them play nicer together. Emacs was built to be working in a normal window manager or in absolute absence of one, however, in the presence of proper tiling manager, some of its habits can be annoying. It doesn't really know what frames are visible and how to make them visible. It insist on splitting the frames or create new frames on too many occasions.
