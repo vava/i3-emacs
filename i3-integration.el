@@ -232,11 +232,14 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
     (let* ((frame (i3-get-popup-frame-for-buffer buffer))
            (window (frame-selected-window frame)))
       (display-buffer-record-window 'reuse window buffer)
-      (window--display-buffer-2 buffer window))))
+      ;; fixed bug on emacs-24 (r108484)
+      ;; More info: https://lists.gnu.org/archive/html/emacs-diffs/2012-11/msg00553.html
+      ;; window--display-buffer-2 was replaced by window--display-buffer
+      (if (version<= emacs-version "24.2")
+          (window--display-buffer-2 buffer window)
+        (window--display-buffer buffer window 'frame)))))
 
 ;;; Set defaults
 (i3-advise-visible-frame-list-on)
 
 (provide 'i3-integration)
-
-
