@@ -235,7 +235,7 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
       ;; fixed bug on emacs-24 (r108484)
       ;; More info: https://lists.gnu.org/archive/html/emacs-diffs/2012-11/msg00553.html
       ;; window--display-buffer-2 was replaced by window--display-buffer
-      (if (version<= emacs-version "24.2")
+      (if (version< emacs-version "24.3")
           (window--display-buffer-2 buffer window)
         (window--display-buffer buffer window 'frame)))))
 
