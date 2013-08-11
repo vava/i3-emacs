@@ -81,8 +81,13 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
 (defun i3-one-window-per-frame-mode (turn-on)
   (i3-switch-advice 'select-frame 'before 'i3-timestamp-frame-selection turn-on)
   (if turn-on
-      (add-to-list 'display-buffer-overriding-action 'i3-display-buffer-use-some-frame)
-    (delete 'i3-display-buffer-use-some-frame 'display-buffer-overriding-action)))
+      (unless (memq 'i3-display-buffer-use-some-frame
+                    (car display-buffer-overriding-action))
+       (push 'i3-display-buffer-use-some-frame
+             (car display-buffer-overriding-action)))
+    (setcar display-buffer-overriding-action
+            (delq 'i3-display-buffer-use-some-frame
+                  (car display-buffer-overriding-action)))))
 
 (defun i3-switch-advice (function class advise turn-on)
   (if turn-on
