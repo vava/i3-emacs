@@ -236,8 +236,7 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
              (not (member (buffer-name buffer) '("*Completions*"))))
     (let* ((frame (i3-get-popup-frame-for-buffer buffer))
            (window (frame-selected-window frame)))
-      (display-buffer-record-window 'reuse window buffer)
-      (window--display-buffer-2 buffer window))))
+      (window--display-buffer buffer window 'reuse))))
 
 ;;; Set defaults
 (i3-advise-visible-frame-list-on)
