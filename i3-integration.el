@@ -115,9 +115,9 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
     (error visible-frame-list)))
 
 (defun i3-get-visible-workspace-names ()
-  (delq nil (mapcar (lambda(w) (when (eq (cdr (assq 'visible w)) t)
-                                 (cdr (assq 'name w))))
-                    (i3-get-workspaces))))
+  (i3-map-and-filter (lambda(w) (when (eq (cdr (assq 'visible w)) t)
+                                  (cdr (assq 'name w))))
+                     (i3-get-workspaces)))
 
 (defun i3-get-visible-windows ()
   (let ((visible-workspace-names (i3-get-visible-workspace-names)))
