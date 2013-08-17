@@ -42,6 +42,7 @@
 ;;; Code:
 
 (require 'i3)
+(require 'cl-lib)
 
 (defcustom i3-collect-windows-function 'i3-collect-only-visible-windows
   "Function used to select windows when used in
@@ -149,7 +150,7 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
     (let* ((folded (or (equal (i3-alist-value 'layout root) "tabbed") (equal (i3-alist-value 'layout root) "stacked")))
            (id (when folded (elt (i3-alist-value 'focus root) 0)))
            (children (if folded
-                         (list (find-if (lambda(w) (eq (i3-alist-value 'id w) id)) (i3-alist-value 'nodes root)))
+                         (list (cl-find-if (lambda(w) (eq (i3-alist-value 'id w) id)) (i3-alist-value 'nodes root)))
                        (i3-alist-value 'nodes root))))
       (i3-flatten (i3-map-and-filter #'i3-collect-only-visible-windows children)))))
 
@@ -177,25 +178,22 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
 
 (defun i3-filter-frames-by-buffer (buffer frames)
   (i3-map-and-filter (lambda(f)
-                       (when (position buffer (frame-parameter f 'buffer-list))
+                       (when (memq buffer (frame-parameter f 'buffer-list))
                          f))
                      frames))
 
 (defun i3-sort-frames-by-buffer (buffer frames)
   (sort frames
-        (lambda(f1 f2) (< (position buffer (frame-parameter f1 'buffer-list))
-                          (position buffer (frame-parameter f2 'buffer-list))))))
+        (lambda(f1 f2) (< (cl-position buffer (frame-parameter f1 'buffer-list))
+                          (cl-position buffer (frame-parameter f2 'buffer-list))))))
 
 (defun i3-sort-frames-by-selected-time (frames)
   (sort frames (lambda (f1 f2) (< (i3-get-frame-selected-time f1) (i3-get-frame-selected-time f2)))))
 
 
 (defun i3-get-frame-showing-buffer (buffer frames)
-  (catch 'found
-    (loop for f in frames
-          do (when (eq (car (frame-parameter f 'buffer-list)) buffer)
-               (throw 'found f)))
-    nil))
+  (cl-find-if (lambda (f) (eq (car (frame-parameter f 'buffer-list)) buffer))
+              frames))
 
 (defun i3-get-frame-most-recently-displayed-buffer (buffer frames)
   (car (i3-sort-frames-by-buffer buffer (i3-filter-frames-by-buffer buffer frames))))
