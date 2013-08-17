@@ -122,7 +122,7 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
 (defun i3-get-visible-windows ()
   (let ((visible-workspace-names (i3-get-visible-workspace-names)))
     (i3-flatten
-     (mapcar (lambda(c) (funcall i3-collect-windows-function c))
+     (mapcar i3-collect-windows-function
              (i3-flatten (i3-map-and-filter (lambda(w)
                                               (when (member (cdr (assq 'name w)) visible-workspace-names)
                                                 (append (cdr (assq 'nodes w)) nil)))
@@ -158,8 +158,8 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
                        (i3-alist-value 'nodes root))))
       (setq window-list
             (append window-list
-                    (i3-flatten (i3-map-and-filter (lambda(r) (i3-collect-only-visible-windows r)) children)))))
-  window-list))
+                    (i3-flatten (i3-map-and-filter #'i3-collect-only-visible-windows children)))))
+    window-list))
 
 ;;; Helper functions
 
