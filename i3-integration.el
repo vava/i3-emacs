@@ -1,4 +1,4 @@
-;;; i3-integration.el -- using i3 IPC to integrate Emacs with i3.
+;;; i3-integration.el -- using i3 IPC to integrate Emacs with i3.  -*- lexical-binding: t; -*-
 
 ;; Copyright (c) 2012, Vadim Atlygin.
 ;; All rights reserved.
@@ -132,17 +132,19 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
 (defun i3-get-visible-windows-ids ()
   (mapcar (apply-partially #'i3-field 'window) (i3-get-visible-windows)))
 
-(defun i3-collect-entities (root checkp)
-  (if (funcall checkp root)
-      (list root)
-    (i3-flatten (i3-map-and-filter (lambda(r) (i3-collect-entities r checkp))
-                                   (i3-field 'nodes root)))))
+(defun i3-collect-entities (checkp)
+  (letrec ((collect (lambda (root)
+                      (if (funcall checkp root)
+                          (list root)
+                        (i3-flatten (i3-map-and-filter collect
+                                                       (i3-field 'nodes root)))))))
+    collect))
 
-(defun i3-collect-workspaces (layout)
-  (i3-collect-entities layout (apply-partially #'i3-field-is 'type #'eq 4)))
+(defalias 'i3-collect-workspaces
+  (i3-collect-entities (apply-partially #'i3-field-is 'type #'eq 4)))
 
-(defun i3-collect-all-windows (container)
-  (i3-collect-entities container (apply-partially #'i3-field 'window)))
+(defalias 'i3-collect-all-windows
+  (i3-collect-entities (apply-partially #'i3-field 'window)))
 
 (defun i3-collect-only-visible-windows (root)
   (if (i3-field 'window root)
