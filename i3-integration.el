@@ -132,14 +132,10 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
   (mapcar (lambda(w) (cdr (assq 'window w))) (i3-get-visible-windows)))
 
 (defun i3-collect-entities (root checkp)
-  (setq entity-list '())
   (if (funcall checkp root)
-      (push root entity-list)
-    (setq entity-list
-          (append entity-list
-                  (i3-flatten (i3-map-and-filter (lambda(r) (i3-collect-entities r checkp))
-                                                 (cdr (assq 'nodes root)))))))
-  entity-list)
+      (list root)
+    (i3-flatten (i3-map-and-filter (lambda(r) (i3-collect-entities r checkp))
+                                   (cdr (assq 'nodes root))))))
 
 (defun i3-collect-workspaces (layout)
   (i3-collect-entities layout (lambda(e) (eq (cdr (assq 'type e)) 4))))
@@ -148,18 +144,14 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
   (i3-collect-entities container (lambda(e) (cdr (assq 'window e)))))
 
 (defun i3-collect-only-visible-windows (root)
-  (setq window-list '())
   (if (i3-alist-value 'window root)
-      (push root window-list)
+      (list root)
     (let* ((folded (or (equal (i3-alist-value 'layout root) "tabbed") (equal (i3-alist-value 'layout root) "stacked")))
            (id (when folded (elt (i3-alist-value 'focus root) 0)))
            (children (if folded
                          (list (find-if (lambda(w) (eq (i3-alist-value 'id w) id)) (i3-alist-value 'nodes root)))
                        (i3-alist-value 'nodes root))))
-      (setq window-list
-            (append window-list
-                    (i3-flatten (i3-map-and-filter #'i3-collect-only-visible-windows children)))))
-    window-list))
+      (i3-flatten (i3-map-and-filter #'i3-collect-only-visible-windows children)))))
 
 ;;; Helper functions
 
