@@ -1,4 +1,4 @@
-;;; i3-integration.el -- using i3 IPC to integrate Emacs with i3.
+;;; i3-integration.el -- using i3 IPC to integrate Emacs with i3.  -*- lexical-binding: t; -*-
 
 ;; Copyright (c) 2012, Vadim Atlygin.
 ;; All rights reserved.
@@ -42,6 +42,7 @@
 ;;; Code:
 
 (require 'i3)
+(require 'cl-lib)
 
 (defcustom i3-collect-windows-function 'i3-collect-only-visible-windows
   "Function used to select windows when used in
@@ -115,59 +116,56 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
     (error visible-frame-list)))
 
 (defun i3-get-visible-workspace-names ()
-  (delq nil (mapcar (lambda(w) (when (eq (cdr (assq 'visible w)) t)
-                                 (cdr (assq 'name w))))
-                    (i3-get-workspaces))))
+  (i3-map-and-filter (lambda(w) (when (i3-field-is 'visible #'eq t w)
+                                  (i3-field 'name w)))
+                     (i3-get-workspaces)))
 
 (defun i3-get-visible-windows ()
   (let ((visible-workspace-names (i3-get-visible-workspace-names)))
     (i3-flatten
-     (mapcar (lambda(c) (funcall i3-collect-windows-function c))
+     (mapcar i3-collect-windows-function
              (i3-flatten (i3-map-and-filter (lambda(w)
-                                              (when (member (cdr (assq 'name w)) visible-workspace-names)
-                                                (append (cdr (assq 'nodes w)) nil)))
+                                              (when (i3-field-is 'name #'member visible-workspace-names w)
+                                                (append (i3-field 'nodes w) nil)));convert vector to list
                                             (i3-collect-workspaces (i3-get-tree-layout))))))))
 
 (defun i3-get-visible-windows-ids ()
-  (mapcar (lambda(w) (cdr (assq 'window w))) (i3-get-visible-windows)))
+  (mapcar (apply-partially #'i3-field 'window) (i3-get-visible-windows)))
 
-(defun i3-collect-entities (root checkp)
-  (setq entity-list '())
-  (if (funcall checkp root)
-      (push root entity-list)
-    (setq entity-list
-          (append entity-list
-                  (i3-flatten (i3-map-and-filter (lambda(r) (i3-collect-entities r checkp))
-                                                 (cdr (assq 'nodes root)))))))
-  entity-list)
+(defun i3-collect-entities (checkp)
+  (letrec ((collect (lambda (root)
+                      (if (funcall checkp root)
+                          (list root)
+                        (i3-flatten (i3-map-and-filter collect
+                                                       (i3-field 'nodes root)))))))
+    collect))
 
-(defun i3-collect-workspaces (layout)
-  (i3-collect-entities layout (lambda(e) (eq (cdr (assq 'type e)) 4))))
+(defalias 'i3-collect-workspaces
+  (i3-collect-entities (apply-partially #'i3-field-is 'type #'eq 4)))
 
-(defun i3-collect-all-windows (container)
-  (i3-collect-entities container (lambda(e) (cdr (assq 'window e)))))
+(defalias 'i3-collect-all-windows
+  (i3-collect-entities (apply-partially #'i3-field 'window)))
 
 (defun i3-collect-only-visible-windows (root)
-  (setq window-list '())
-  (if (i3-alist-value 'window root)
-      (push root window-list)
-    (let* ((folded (or (equal (i3-alist-value 'layout root) "tabbed") (equal (i3-alist-value 'layout root) "stacked")))
-           (id (when folded (elt (i3-alist-value 'focus root) 0)))
+  (if (i3-field 'window root)
+      (list root)
+    (let* ((folded (i3-field-is 'layout #'member '("tabbed" "stacked") root))
+           (id (when folded (elt (i3-field 'focus root) 0)))
            (children (if folded
-                         (list (find-if (lambda(w) (eq (i3-alist-value 'id w) id)) (i3-alist-value 'nodes root)))
-                       (i3-alist-value 'nodes root))))
-      (setq window-list
-            (append window-list
-                    (i3-flatten (i3-map-and-filter (lambda(r) (i3-collect-only-visible-windows r)) children)))))
-  window-list))
+                         (list (cl-find-if (apply-partially #'i3-field-is 'id #'eq id) (i3-field 'nodes root)))
+                       (i3-field 'nodes root))))
+      (i3-flatten (i3-map-and-filter #'i3-collect-only-visible-windows children)))))
 
 ;;; Helper functions
 
 (defun i3-flatten (list-of-lists)
   (apply 'append list-of-lists))
 
-(defun i3-alist-value (symbol alist)
+; json objects get converted to alists
+(defun i3-field (symbol alist)
   (cdr (assq symbol alist)))
+(defun i3-field-is (symbol pred compare alist)
+  (funcall pred (i3-field symbol alist) compare))
 
 (defun i3-map-and-filter (function list)
   (delq nil (mapcar function list)))
@@ -185,25 +183,22 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
 
 (defun i3-filter-frames-by-buffer (buffer frames)
   (i3-map-and-filter (lambda(f)
-                       (when (position buffer (frame-parameter f 'buffer-list))
+                       (when (memq buffer (frame-parameter f 'buffer-list))
                          f))
                      frames))
 
 (defun i3-sort-frames-by-buffer (buffer frames)
   (sort frames
-        (lambda(f1 f2) (< (position buffer (frame-parameter f1 'buffer-list))
-                          (position buffer (frame-parameter f2 'buffer-list))))))
+        (lambda(f1 f2) (< (cl-position buffer (frame-parameter f1 'buffer-list))
+                          (cl-position buffer (frame-parameter f2 'buffer-list))))))
 
 (defun i3-sort-frames-by-selected-time (frames)
   (sort frames (lambda (f1 f2) (< (i3-get-frame-selected-time f1) (i3-get-frame-selected-time f2)))))
 
 
 (defun i3-get-frame-showing-buffer (buffer frames)
-  (catch 'found
-    (loop for f in frames
-          do (when (eq (car (frame-parameter f 'buffer-list)) buffer)
-               (throw 'found f)))
-    nil))
+  (cl-find-if (lambda (f) (eq (car (frame-parameter f 'buffer-list)) buffer))
+              frames))
 
 (defun i3-get-frame-most-recently-displayed-buffer (buffer frames)
   (car (i3-sort-frames-by-buffer buffer (i3-filter-frames-by-buffer buffer frames))))
