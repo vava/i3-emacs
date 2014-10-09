@@ -141,7 +141,7 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
     collect))
 
 (defalias 'i3-collect-workspaces
-  (i3-collect-entities (apply-partially #'i3-field-is 'type #'eq 4)))
+  (i3-collect-entities (apply-partially #'i3-field-is 'type #'equal "workspace")))
 
 (defalias 'i3-collect-all-windows
   (i3-collect-entities (apply-partially #'i3-field 'window)))
