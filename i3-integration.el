@@ -226,11 +226,17 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
         (i3-get-frame-least-recently-used frames-no-selected-frame)
         (car frames))))
 
+(defun i3-get-window-for-frame (frame)
+  (let ((selected-window (frame-selected-window frame)))
+    (if (window-minibuffer-p selected-window)
+        (next-window selected-window)
+      selected-window)))
+
 (defun i3-display-buffer-use-some-frame (buffer alist)
   (when (and (display-graphic-p)
              (not (member (buffer-name buffer) '("*Completions*"))))
     (let* ((frame (i3-get-popup-frame-for-buffer buffer))
-           (window (frame-selected-window frame)))
+           (window (i3-get-window-for-frame frame)))
       (window--display-buffer buffer window 'reuse))))
 
 ;;; Set defaults
