@@ -1,6 +1,7 @@
 ;;; i3-integration.el -- using i3 IPC to integrate Emacs with i3.  -*- lexical-binding: t; -*-
 
 ;; Copyright (c) 2012, Vadim Atlygin.
+;;               2015, Jan Path
 ;; All rights reserved.
 
 ;; Author:  Vadim Atlygin <vadim.atlygin@gmail.com>
@@ -234,7 +235,8 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
 
 (defun i3-display-buffer-use-some-frame (buffer alist)
   (when (and (display-graphic-p)
-             (not (member (buffer-name buffer) '("*Completions*"))))
+             (not (or (member (buffer-name buffer) '("*Completions*"))
+                      (string-match-p "^\*[Hh]elm.*\*$" (buffer-name buffer)))))
     (let* ((frame (i3-get-popup-frame-for-buffer buffer))
            (window (i3-get-window-for-frame frame)))
       (window--display-buffer buffer window 'reuse))))
