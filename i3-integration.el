@@ -58,12 +58,14 @@ will use all of them."
   "Turns on advising of visible-frame-list function. This has the
 effect of (visible-frame-list) returning only frames that are
 situated on visible workspaces. This is the default."
+  (interactive)
   (i3-switch-advice 'visible-frame-list 'after 'i3-visible-frame-list t))
 
 (defun i3-advise-visible-frame-list-off ()
   "Turns off advising of visible-frame-list
 function. (visible-frame-list) will return all frames as i3,
 being a tiling wm, does not have minimized windows concept."
+  (interactive)
   (i3-switch-advice 'visible-frame-list 'after 'i3-visible-frame-list nil))
 
 (defun i3-one-window-per-frame-mode-on ()
@@ -72,10 +74,12 @@ emacs will not split your frames, instead it will reuse them, in
 more or less sensible manner. It will not reuse frames from
 invisible workspaces either and will prefer to replace special
 kind of buffers or least recently used ones. Works only in Emacs 24."
+  (interactive)
   (i3-one-window-per-frame-mode t))
 
 (defun i3-one-window-per-frame-mode-off ()
   "Turns off one window per frame mode. This is the default."
+  (interactive)
   (i3-one-window-per-frame-mode nil))
 
 ;;; Internal functions
