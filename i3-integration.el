@@ -230,7 +230,7 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
 (defun i3-display-buffer-use-some-frame (buffer alist)
   (when (and (display-graphic-p)
              (not (or (member (buffer-name buffer) '("*Completions*" " *undo-tree*"))
-                      (string-match-p "^\*[Hh]elm.*\*$" (buffer-name buffer)))))
+                      (string-match-p "\\`[*][Hh]elm.*[*]\\'" (buffer-name buffer)))))
     (let* ((frame (i3-get-popup-frame-for-buffer buffer))
            (window (i3-get-window-for-frame frame)))
       (window--display-buffer buffer window 'reuse))))
