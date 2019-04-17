@@ -1,7 +1,7 @@
 i3-emacs
 ========
 
-*Note: Emacs 24.[3,5] required.*
+*Note: Emacs 24.3 or greater required.*
 
 i3 emacs integration.
 

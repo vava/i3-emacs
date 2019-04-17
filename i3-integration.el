@@ -6,6 +6,7 @@
 
 ;; Author:  Vadim Atlygin <vadim.atlygin@gmail.com>
 ;; Version: 0.1
+;; Package-Requires: ((emacs "24.3"))
 
 ;; Redistribution and use in source and binary forms, with or without
 ;; modification, are permitted provided that the following conditions are met:
@@ -37,9 +38,6 @@
 ;; predictable fashion with i3. Some of them are quite subjective so
 ;; they are disabled by default.
 
-;;; Bugs/todo:
-;; - only Emacs 24 supported
-
 ;;; Code:
 
 (require 'i3)
@@ -59,14 +57,14 @@ will use all of them."
 effect of (visible-frame-list) returning only frames that are
 situated on visible workspaces. This is the default."
   (interactive)
-  (i3-switch-advice 'visible-frame-list 'after 'i3-visible-frame-list t))
+  (advice-add 'visible-frame-list :filter-return #'i3-visible-frame-list-filter))
 
 (defun i3-advise-visible-frame-list-off ()
   "Turns off advising of visible-frame-list
 function. (visible-frame-list) will return all frames as i3,
 being a tiling wm, does not have minimized windows concept."
   (interactive)
-  (i3-switch-advice 'visible-frame-list 'after 'i3-visible-frame-list nil))
+  (advice-remove 'visible-frame-list #'i3-visible-frame-list-filter))
 
 (defun i3-one-window-per-frame-mode-on ()
   "Turns on one window per frame mode. After switching it on,
@@ -85,28 +83,20 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
 ;;; Internal functions
 
 (defun i3-one-window-per-frame-mode (turn-on)
-  (i3-switch-advice 'select-frame 'before 'i3-timestamp-frame-selection turn-on)
   (if turn-on
-      (unless (memq 'i3-display-buffer-use-some-frame
-                    (car display-buffer-overriding-action))
-       (push 'i3-display-buffer-use-some-frame
-             (car display-buffer-overriding-action)))
-    (setcar display-buffer-overriding-action
-            (delq 'i3-display-buffer-use-some-frame
-                  (car display-buffer-overriding-action)))))
-
-(defun i3-switch-advice (function class advise turn-on)
-  (if turn-on
-      (ad-enable-advice function class advise)
-    (ad-disable-advice function class advise))
-  (ad-activate function))
+      (progn (advice-add 'select-frame :before #'i3-timestamp-frame-selection)
+             (cl-pushnew 'i3-display-buffer-use-some-frame
+                         (car display-buffer-overriding-action)))
+    (advice-remove 'select-frame #'i3-timestamp-frame-selection)
+    (cl-callf2 delq 'i3-display-buffer-use-some-frame
+               (car display-buffer-overriding-action))))
 
 ;;; Advices
-(defadvice visible-frame-list (after i3-visible-frame-list disable)
-  (setq ad-return-value (i3-filter-visible-frame-list (i3-filter-other-display-frames ad-return-value))))
+(defun i3-visible-frame-list-filter (frame-list)
+  (i3-filter-visible-frame-list (i3-filter-other-display-frames frame-list)))
 
-(defadvice select-frame (before i3-timestamp-frame-selection disable)
-  (set-frame-parameter (ad-get-arg 0) 'i3-frame-selected-time (current-time)))
+(defun i3-timestamp-frame-selection (frame &rest _)
+  (set-frame-parameter frame 'i3-frame-selected-time (current-time)))
 
 ;;; i3 dependent pieces
 
