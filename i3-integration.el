@@ -136,7 +136,9 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
     collect))
 
 (defalias 'i3-collect-workspaces
-  (i3-collect-entities (apply-partially #'i3-field-is 'type #'equal "workspace")))
+  (i3-collect-entities (lambda (root)
+                         (or (i3-field-is 'type #'equal 4 root)
+                             (i3-field-is 'type #'equal "workspace" root)))))
 
 (defalias 'i3-collect-all-windows
   (i3-collect-entities (apply-partially #'i3-field 'window)))
@@ -206,6 +208,7 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
   (let ((selected-display (frame-parameter (selected-frame) 'display)))
     (i3-map-and-filter (lambda(f)
                          (when (and (not (frame-parameter f 'tty))
+                                    (not (frame-parameter f 'i3-ignore-frame))
                                     (eq (frame-parameter f 'display) selected-display))
                            f))
                        frames)))
