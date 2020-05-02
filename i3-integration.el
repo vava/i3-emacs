@@ -231,6 +231,7 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
       selected-window)))
 
 (defun i3-display-buffer-use-some-frame (buffer alist)
+  (ignore alist)
   (when (and (display-graphic-p)
              (not (or (member (buffer-name buffer) '("*Completions*" " *undo-tree*"))
                       (string-match-p "\\`[*][Hh]elm.*[*]\\'" (buffer-name buffer)))))
