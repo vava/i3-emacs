@@ -85,13 +85,19 @@ kind of buffers or least recently used ones. Works only in Emacs 24."
 (defun i3-one-window-per-frame-mode (turn-on)
   (if turn-on
       (progn (advice-add 'select-frame :before #'i3-timestamp-frame-selection)
+	     (advice-add 'pop-to-buffer-same-window :override #'i3-pop-to-buffer-same-window)
              (cl-pushnew 'i3-display-buffer-use-some-frame
                          (car display-buffer-overriding-action)))
     (advice-remove 'select-frame #'i3-timestamp-frame-selection)
+    (advice-remove 'pop-to-buffer-same-window #'i3-pop-to-buffer-same-window)
     (cl-callf2 delq 'i3-display-buffer-use-some-frame
                (car display-buffer-overriding-action))))
 
 ;;; Advices
+(defun i3-pop-to-buffer-same-window (buffer &optional norecord)
+  (let ((display-buffer-overriding-action '(nil . nil)))
+  (pop-to-buffer buffer display-buffer--same-window-action norecord)))
+
 (defun i3-visible-frame-list-filter (frame-list)
   (i3-filter-visible-frame-list (i3-filter-other-display-frames frame-list)))
 
