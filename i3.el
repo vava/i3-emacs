@@ -1,10 +1,14 @@
-;;; i3.el -- bindings for i3 WM IPC.
+;;; i3.el --- Bindings for i3 WM IPC  -*- lexical-binding: t; -*-
 
 ;; Copyright (c) 2012, Vadim Atlygin.
 ;; All rights reserved.
 
 ;; Author:  Vadim Atlygin <vadim.atlygin@gmail.com>
-;; Version: 0.1
+
+;; Package-Requires: ((emacs "24.3"))
+;; Package-Version: 0.1
+;; Homepage: https://github.com/vava/i3-emacs
+
 
 ;; Redistribution and use in source and binary forms, with or without
 ;; modification, are permitted provided that the following conditions are met:
@@ -45,18 +49,27 @@
 (require 'json)
 
 (defconst i3-process-name "*i3-process*"
-  "Name of the buffer associated with i3 IPC process")
+  "Name of the buffer associated with i3 IPC process.")
+
+(defvar i3-client)
+
+(defvar i3-msg-spec
+  '((:magic str 6)
+    (:length u32r)
+    (:command u32r))
+  "Data structure for an i3 IPC message.")
 
 (defun i3-get-tree-layout ()
-  "Returns a layout tree. See i3 wm IPC docs for details."
+  "Return a layout tree.  See i3 wm IPC docs for details."
   (i3-command 4))
 
 (defun i3-get-workspaces ()
-  "Returns a list of current workspaces. See i3 wm IPC docs for details."
+  "Return a list of current workspaces.  See i3 wm IPC docs for details."
   (i3-command 1))
 
 (defun i3-command (command &optional payload)
-  "Sends command to i3 and returns the response. See i3 wm IPC docs for details."
+  "Send COMMAND to i3 and return the response.
+See i3 wm IPC docs for details of COMMAND numbers and PAYLOAD."
   (let ((proc (i3-get-or-make-client))
         (length (length payload)))
     (process-put proc 'response nil)
@@ -72,22 +85,17 @@
       (json-read-from-string response))))
 
 (defun i3-get-or-make-client ()
-  "Creates or returns a current process connected to i3 wm IPC."
-  (unless (boundp 'i3-client)
+  "Create or return a current process connected to i3 wm IPC."
+  (unless (bound-and-true-p i3-client)
     (setq i3-client (make-network-process :name i3-process-name :buffer (get-buffer-create i3-process-name)
                                           :coding '(raw-text-unix . raw-text-unix)
                                           :family 'local
-                                          :filter 'i3-response-filter
-                                          :sentinel 'i3-sentinel
+                                          :filter #'i3-response-filter
+                                          :sentinel #'i3-sentinel
                                           :service (i3-chomp (shell-command-to-string "i3 --get-socketpath")))))
   i3-client)
 
-;;; Internal functions and data structures.
-
-(defvar i3-msg-spec
-  '((:magic str 6)
-    (:length u32r)
-    (:command u32r)))
+;;; Internal functions
 
 (defun i3-response-filter (proc resp)
   (if (not (process-get proc 'partial-response))
@@ -100,10 +108,11 @@
     (process-put proc 'response (process-get proc 'partial-response))
     (process-put proc 'partial-response nil)))
 
-(defun i3-sentinel (proc event)
+(defun i3-sentinel (_proc _event)
   (setq i3-client nil))
 
 (defun i3-chomp (string)
   (replace-regexp-in-string "\n$" "" string))
 
 (provide 'i3)
+;;; i3.el ends here
